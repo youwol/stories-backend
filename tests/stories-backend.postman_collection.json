@@ -1,0 +1,1920 @@
+{
+  "info": {
+    "_postman_id": "f88b101d-072f-4e29-8528-165afa643814",
+    "name": "stories-backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "login",
+      "item": [
+        {
+          "name": "login service account",
+          "item": [
+            {
+              "name": "Keycloak - Auth - client youwol-dev",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var response_json = pm.response.json();\r",
+                      "var token = response_json.access_token;\r",
+                      "pm.collectionVariables.set('token', token);\r",
+                      "\r",
+                      "pm.test(\"Status code is 200\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "name": "Content-Type",
+                    "type": "text",
+                    "value": "application/x-www-form-urlencoded"
+                  }
+                ],
+                "body": {
+                  "mode": "urlencoded",
+                  "urlencoded": [
+                    {
+                      "key": "client_id",
+                      "value": "{{clientId}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "grant_type",
+                      "value": "client_credentials",
+                      "type": "text"
+                    },
+                    {
+                      "key": "client_secret",
+                      "value": "{{clientSecret}}",
+                      "type": "text"
+                    },
+                    {
+                      "key": "scope",
+                      "value": "{{scope}}",
+                      "type": "text"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "https://gc.auth.youwol.com/auth/realms/youwol/protocol/openid-connect/token",
+                  "protocol": "https",
+                  "host": [
+                    "gc",
+                    "auth",
+                    "youwol",
+                    "com"
+                  ],
+                  "path": [
+                    "auth",
+                    "realms",
+                    "youwol",
+                    "protocol",
+                    "openid-connect",
+                    "token"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Keycloak - UserInfo",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      ""
+                    ],
+                    "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "",
+                    "type": "text",
+                    "value": "",
+                    "disabled": true
+                  },
+                  {
+                    "key": "",
+                    "type": "text",
+                    "value": "",
+                    "disabled": true
+                  }
+                ],
+                "url": {
+                  "raw": "https://gc.auth.youwol.com/auth/realms/youwol/protocol/openid-connect/userinfo",
+                  "protocol": "https",
+                  "host": [
+                    "gc",
+                    "auth",
+                    "youwol",
+                    "com"
+                  ],
+                  "path": [
+                    "auth",
+                    "realms",
+                    "youwol",
+                    "protocol",
+                    "openid-connect",
+                    "userinfo"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "data preparation",
+      "item": [
+        {
+          "name": "healthz",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200 &  'stories-backend serving'\", function () {",
+                  "    ",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.json().status).to.eq(\"stories-backend serving\")",
+                  "});",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "type": "text",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/healthz",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "healthz"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "happy path",
+      "item": [
+        {
+          "name": "create story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains expected attributes\", function () {",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('storyId')",
+                  "    pm.expect(resp).to.haveOwnProperty('rootDocumentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('title')",
+                  "    pm.expect(resp).to.haveOwnProperty('authors')",
+                  "    pm.expect(resp.authors.length).to.eq(1)",
+                  "    pm.expect(resp.title).to.eq(\"postman test story\")",
+                  "    pm.collectionVariables.set(\"happyPath-storyId\", resp.storyId)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"postman test story\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains expected attributes\", function () {",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('storyId')",
+                  "    pm.expect(resp).to.haveOwnProperty('rootDocumentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('title')",
+                  "    pm.expect(resp).to.haveOwnProperty('authors')",
+                  "    pm.expect(resp.authors.length).to.eq(1)",
+                  "    pm.expect(resp.title).to.eq(\"postman test story\")",
+                  "    pm.collectionVariables.set(\"happyPath-storyId\", resp.storyId)",
+                  "    pm.collectionVariables.set(\"happyPath-rootDocId\", resp.rootDocumentId)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains expected attributes\", function () {",
+                  "",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('storyId')",
+                  "    pm.expect(resp).to.haveOwnProperty('documentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('title')",
+                  "    pm.expect(resp).to.haveOwnProperty('position')",
+                  "",
+                  "    pm.expect(resp.storyId).to.eq(pm.collectionVariables.get(\"happyPath-storyId\"))",
+                  "    pm.expect(resp.documentId).to.eq(pm.collectionVariables.get(\"happyPath-rootDocId\"))",
+                  "    pm.expect(resp.title).to.eq(\"postman test story\")",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents/{{happyPath-rootDocId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents",
+                "{{happyPath-rootDocId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"content is empty\", function () {",
+                  "",
+                  "    resp = pm.response.text()",
+                  "    pm.expect(resp).to.eq('You can start writing your story :)')",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/contents/{{happyPath-rootDocId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "contents",
+                "{{happyPath-rootDocId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "post content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\": \"ROOT CONTENT UPDATED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/contents/{{happyPath-rootDocId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "contents",
+                "{{happyPath-rootDocId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get content after update",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Content is 'ROOT CONTENT UPDATED'\", function () {",
+                  "",
+                  "    resp = pm.response.text()",
+                  "    pm.expect(resp).to.eq('ROOT CONTENT UPDATED')",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/contents/{{happyPath-rootDocId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "contents",
+                "{{happyPath-rootDocId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get children",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"1 child  with expected attributes\", function () {",
+                  "",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('documents')",
+                  "    pm.expect(resp.documents.length).to.eq(1)",
+                  "    let doc = resp.documents[0]",
+                  "    pm.expect(doc).to.haveOwnProperty('documentId')",
+                  "    pm.expect(doc).to.haveOwnProperty('parentDocumentId')",
+                  "    pm.expect(doc).to.haveOwnProperty('storyId')",
+                  "    pm.expect(doc).to.haveOwnProperty('title')",
+                  "    pm.expect(doc).to.haveOwnProperty('position')",
+                  "    pm.expect(doc).to.haveOwnProperty('contentId')",
+                  "",
+                  "    pm.expect(doc.storyId).to.eq(pm.collectionVariables.get(\"happyPath-storyId\"))",
+                  "    pm.expect(doc.documentId).to.eq(pm.collectionVariables.get(\"happyPath-rootDocId\"))",
+                  "    pm.expect(doc.title).to.eq(\"postman test story\")",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents/{{happyPath-storyId}}/children?from-index=0&count=10",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents",
+                "{{happyPath-storyId}}",
+                "children"
+              ],
+              "query": [
+                {
+                  "key": "from-index",
+                  "value": "0"
+                },
+                {
+                  "key": "count",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "create document 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains expected attributes\", function () {",
+                  "    resp = pm.response.json()",
+                  "    ",
+                  "    pm.expect(resp).to.haveOwnProperty('storyId')",
+                  "    pm.expect(resp).to.haveOwnProperty('documentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('parentDocumentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('title')",
+                  "    pm.expect(resp).to.haveOwnProperty('contentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('position')",
+                  "    ",
+                  "    pm.expect(resp.storyId).to.eq(pm.collectionVariables.get(\"happyPath-storyId\"))",
+                  "    pm.collectionVariables.set(\"happyPath-child0\", resp.documentId)",
+                  "    pm.collectionVariables.set(\"happyPath-contentChild0\", resp.contentId)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"postman test story - child0\",\n    \"parentDocumentId\": \"{{happyPath-rootDocId}}\",\n    \"content\": \"CHILD0 CONTENT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get content child0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Content is 'CHILD0 CONTENT'\", function () {",
+                  "",
+                  "    resp = pm.response.text()",
+                  "    pm.expect(resp).to.eq('CHILD0 CONTENT')",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/contents/{{happyPath-contentChild0}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "contents",
+                "{{happyPath-contentChild0}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update document 0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Title is updated\", function () {",
+                  "    resp = pm.response.json()",
+                  "    ",
+                  "    pm.expect(resp).to.haveOwnProperty('storyId')",
+                  "    pm.expect(resp).to.haveOwnProperty('documentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('parentDocumentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('title')",
+                  "    pm.expect(resp).to.haveOwnProperty('contentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('position')",
+                  "    ",
+                  "    pm.expect(resp.title).to.eq(\"postman test story - child0 UPDATED\")",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"postman test story - child0 UPDATED\",\n    \"content\": \"CHILD0 CONTENT UPDATED\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents/{{happyPath-child0}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents",
+                "{{happyPath-child0}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get content child0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Content is 'CHILD0 CONTENT'\", function () {",
+                  "",
+                  "    resp = pm.response.text()",
+                  "    pm.expect(resp).to.eq('CHILD0 CONTENT UPDATED')",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/contents/{{happyPath-contentChild0}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "contents",
+                "{{happyPath-contentChild0}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "create document 1",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"postman test story - child1\",\n    \"parentDocumentId\": \"{{happyPath-rootDocId}}\",\n    \"content\": \"CHILD1 CONTENT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "create document 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"postman test story - child2\",\n    \"parentDocumentId\": \"{{happyPath-rootDocId}}\",\n    \"content\": \"CHILD2 CONTENT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get children (0:10)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"3 children with appropriate orderIndex\", function () {",
+                  "",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('documents')",
+                  "    pm.expect(resp.documents.length).to.eq(3)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents/{{happyPath-rootDocId}}/children?count=10",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents",
+                "{{happyPath-rootDocId}}",
+                "children"
+              ],
+              "query": [
+                {
+                  "key": "count",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get children (1:1)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"1 child with appropriate orderIndex\", function () {",
+                  "",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('documents')",
+                  "    pm.expect(resp.documents.length).to.eq(1)",
+                  "    pm.expect(resp.documents[0].title).to.eq(\"postman test story - child1\")",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents/{{happyPath-rootDocId}}/children?from-position=500001&count=1",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents",
+                "{{happyPath-rootDocId}}",
+                "children"
+              ],
+              "query": [
+                {
+                  "key": "from-position",
+                  "value": "500001"
+                },
+                {
+                  "key": "count",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get children (2:10)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"1 child with appropriate orderIndex\", function () {",
+                  "",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('documents')",
+                  "    pm.expect(resp.documents.length).to.eq(1)",
+                  "    pm.expect(resp.documents[0].title).to.eq(\"postman test story - child2\")",
+                  "",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents/{{happyPath-rootDocId}}/children?from-position=500002&count=10",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents",
+                "{{happyPath-rootDocId}}",
+                "children"
+              ],
+              "query": [
+                {
+                  "key": "from-position",
+                  "value": "500002"
+                },
+                {
+                  "key": "count",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "create nested child",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains expected attributes\", function () {",
+                  "    resp = pm.response.json()",
+                  "    ",
+                  "    pm.expect(resp).to.haveOwnProperty('storyId')",
+                  "    pm.expect(resp).to.haveOwnProperty('documentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('parentDocumentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('title')",
+                  "    pm.expect(resp).to.haveOwnProperty('contentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('position')",
+                  "    ",
+                  "    pm.expect(resp.storyId).to.eq(pm.collectionVariables.get(\"happyPath-storyId\"))",
+                  "    pm.expect(resp.parentDocumentId).to.eq(pm.collectionVariables.get(\"happyPath-child0\"))",
+                  "",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"postman test story - nested child0\",\n    \"parentDocumentId\": \"{{happyPath-child0}}\",\n    \"content\": \"NESTED CHILD0 CONTENT\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "delete child0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "",
+                  "pm.test(\"deletedDocuments==2\", function () {",
+                  "    resp = pm.response.json()",
+                  "    ",
+                  "    pm.expect(resp).to.haveOwnProperty('deletedDocuments')",
+                  "    // child0 + nested child = 2",
+                  "    pm.expect(resp.deletedDocuments).to.eq(2)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents/{{happyPath-child0}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents",
+                "{{happyPath-child0}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get children (0:10)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"2 children, child1 & child2\", function () {",
+                  "",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('documents')",
+                  "    pm.expect(resp.documents.length).to.eq(2)",
+                  "    pm.expect(resp.documents[0].title).to.eq(\"postman test story - child1\")",
+                  "    pm.expect(resp.documents[1].title).to.eq(\"postman test story - child2\")",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents/{{happyPath-rootDocId}}/children?from-position=0&count=10",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents",
+                "{{happyPath-rootDocId}}",
+                "children"
+              ],
+              "query": [
+                {
+                  "key": "from-position",
+                  "value": "0"
+                },
+                {
+                  "key": "count",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get content child0",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is NOT FOUND\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/contents/{{happyPath-contentChild0}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "contents",
+                "{{happyPath-contentChild0}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "update story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Title is updated\", function () {",
+                  "    resp = pm.response.json()    ",
+                  "    pm.expect(resp.title).to.eq(\"story's title updated\")",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"story's title updated\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get document",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains expected attributes\", function () {",
+                  "",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp.title).to.eq(\"story's title updated\")",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/documents/{{happyPath-rootDocId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "documents",
+                "{{happyPath-rootDocId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "delete story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "",
+                  "pm.test(\"deletedDocuments==3\", function () {",
+                  "    resp = pm.response.json()",
+                  "    ",
+                  "    pm.expect(resp).to.haveOwnProperty('deletedDocuments')",
+                  "    // root document + child1 + child2 = 3",
+                  "    pm.expect(resp.deletedDocuments).to.eq(3)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "publish story",
+      "item": [
+        {
+          "name": "publish",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains expected attributes\", function () {",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('storyId')",
+                  "    pm.expect(resp).to.haveOwnProperty('rootDocumentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('title')",
+                  "    pm.expect(resp).to.haveOwnProperty('authors')",
+                  "    pm.expect(resp.authors.length).to.eq(1)",
+                  "    pm.expect(resp.title).to.eq(\"How to write stories\")",
+                  "    pm.expect(resp.storyId).to.eq(\"test_story_postman\")",
+                  "    pm.collectionVariables.set(\"publish_story-storyId\", resp.storyId)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "services/stories-backend/tests/story.zip"
+                }
+              ],
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains expected attributes\", function () {",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('storyId')",
+                  "    pm.expect(resp).to.haveOwnProperty('rootDocumentId')",
+                  "    pm.expect(resp).to.haveOwnProperty('title')",
+                  "    pm.expect(resp).to.haveOwnProperty('authors')",
+                  "    pm.expect(resp.authors.length).to.eq(1)",
+                  "    pm.expect(resp.title).to.eq(\"How to write stories\")",
+                  "    pm.collectionVariables.set(\"publish_story-rootDocId\", resp.rootDocumentId)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{publish_story-storyId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{publish_story-storyId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get children root",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"1 child with appropriate orderIndex\", function () {",
+                  "",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('documents')",
+                  "    pm.expect(resp.documents.length).to.eq(3)",
+                  "    pm.expect(resp.documents.map( d => d.title)).to.deep.eq([\"Markdown\", \"Latex\", \"Views\"])",
+                  "    pm.expect(resp.documents.map( d => d.documentId)).to.deep.eq([\"markdown\", \"latex\", \"story-views\"])",
+                  "",
+                  "    pm.collectionVariables.set(\"publish_story-storyViewDocId\", \"story-views\")",
+                  "",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{publish_story-storyId}}/documents/{{publish_story-rootDocId}}/children",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{publish_story-storyId}}",
+                "documents",
+                "{{publish_story-rootDocId}}",
+                "children"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get children nested",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"1 child with appropriate orderIndex\", function () {",
+                  "",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('documents')",
+                  "    pm.expect(resp.documents.length).to.eq(1)",
+                  "    pm.expect(resp.documents.map( d => d.title)).to.deep.eq([\"youwol widgets\"])",
+                  "",
+                  "    pm.collectionVariables.set(\"publish_story-testContentId\", resp.documents[0].contentId)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{publish_story-storyId}}/documents/{{publish_story-storyViewDocId}}/children",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{publish_story-storyId}}",
+                "documents",
+                "{{publish_story-storyViewDocId}}",
+                "children"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "get content",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{happyPath-storyId}}/contents/{{publish_story-testContentId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{happyPath-storyId}}",
+                "contents",
+                "{{publish_story-testContentId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "delete story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "",
+                  "pm.test(\"deletedDocuments==3\", function () {",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('deletedDocuments')",
+                  "    pm.expect(resp.deletedDocuments).to.eq(5)",
+                  "})"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{host}}/api/stories-backend/stories/{{publish_story-storyId}}",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "stories",
+                "{{publish_story-storyId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "emojis",
+      "item": [
+        {
+          "name": "get emojis list",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response contains emojis list\", function () {",
+                  "    resp = pm.response.json()",
+                  "    pm.expect(resp).to.haveOwnProperty('emojis')",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "bearer token",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"groupId\": \"{{targetGroup}}\",\n    \"content\": \"Hi, this message has been generated from the postman collection 'network' (auto-tests).\",\n    \"onGroupBehalf\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{host}}/api/stories-backend/emojis/animals",
+              "host": [
+                "{{host}}"
+              ],
+              "path": [
+                "api",
+                "stories-backend",
+                "emojis",
+                "animals"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "token",
+      "value": null
+    },
+    {
+      "key": "targetGroup",
+      "value": "L3lvdXdvbC11c2Vycy9wb3N0bWFuLXRlc3Rlci9zdWJjaGlsZHRlc3Qx"
+    },
+    {
+      "key": "postId",
+      "value": "6b486252-2f23-4341-8889-e6c227efb7a5"
+    },
+    {
+      "key": "postIdToDelete",
+      "value": "c19bb60c-4d59-4df0-9834-05214d57dc22"
+    },
+    {
+      "key": "postIdToDiscuss",
+      "value": "bafdeb87-4c6e-4fcb-a907-7fe8ae967e7d"
+    },
+    {
+      "key": "postIdToEmojis",
+      "value": "68685868-6447-40ba-a9c3-ca771d4eb957"
+    },
+    {
+      "key": "happyPath-storyId",
+      "value": ""
+    },
+    {
+      "key": "happyPath-rootDocId",
+      "value": ""
+    },
+    {
+      "key": "happyPath-contentChild0",
+      "value": ""
+    },
+    {
+      "key": "happyPath-child0",
+      "value": ""
+    },
+    {
+      "key": "published-storyId",
+      "value": ""
+    },
+    {
+      "key": "publish_story-storyId",
+      "value": ""
+    },
+    {
+      "key": "publish_story-rootDocId",
+      "value": ""
+    },
+    {
+      "key": "publish_story-storyViewDocId",
+      "value": ""
+    },
+    {
+      "key": "publish_story-testContentId",
+      "value": ""
+    }
+  ]
+}
