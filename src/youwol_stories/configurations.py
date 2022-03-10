@@ -8,6 +8,7 @@ from youwol_utils import (
     LocalStorageClient, DocDbClient, StorageClient, find_platform_path,
     get_headers_auth_admin_from_env, get_headers_auth_admin_from_secrets_file, log_info,
 )
+from youwol_utils.clients.assets_gateway.assets_gateway import AssetsGatewayClient
 from youwol_utils.context import ContextLogger, DeployedContextLogger
 from youwol_utils.middlewares import Middleware
 from youwol_utils.middlewares.authentication_local import AuthLocalMiddleware
@@ -27,6 +28,8 @@ class Configuration:
     storage: Storage
     doc_db_stories: DocDb
     doc_db_documents: DocDb
+
+    assets_gtw_client: AssetsGatewayClient
 
     auth_middleware: AuthMiddleware
     auth_middleware_args: Dict[str, any]
@@ -76,6 +79,7 @@ async def get_tricot_config() -> Configuration:
         secondary_indexes=[DOCUMENTS_TABLE_BY_ID],
         replication_factor=Configuration.replication_factor
     )
+    assets_gtw_client = AssetsGatewayClient(url_base="http://assets-gateway")
 
     auth_client = AuthClient(url_base=f"https://{openid_host}/auth")
     cache_client = CacheClient(host="redis-master.infra.svc.cluster.local", prefix=Configuration.cache_prefix)
@@ -86,6 +90,7 @@ async def get_tricot_config() -> Configuration:
         storage=storage,
         doc_db_stories=doc_db_stories,
         doc_db_documents=doc_db_documents,
+        assets_gtw_client=assets_gtw_client,
         auth_middleware=Middleware,
         auth_middleware_args={
             "auth_client": auth_client,
@@ -116,6 +121,7 @@ async def get_remote_clients_config(url_cluster) -> Configuration:
         replication_factor=Configuration.replication_factor
     )
 
+    assets_gtw_client = AssetsGatewayClient(url_base="http://localhost:2000/api/assets-gateway")
     auth_client = AuthClient(url_base=f"https://{openid_host}/auth")
     cache_client = LocalCacheClient(prefix=Configuration.cache_prefix)
 
@@ -126,6 +132,7 @@ async def get_remote_clients_config(url_cluster) -> Configuration:
         storage=storage,
         doc_db_stories=doc_db_stories,
         doc_db_documents=doc_db_documents,
+        assets_gtw_client=assets_gtw_client,
         auth_middleware=Middleware,
         auth_middleware_args={
             "auth_client": auth_client,
@@ -160,6 +167,8 @@ async def get_full_local_config() -> Configuration:
         secondary_indexes=[DOCUMENTS_TABLE_BY_ID]
     )
 
+    assets_gtw_client = AssetsGatewayClient(url_base="http://localhost:2000/api/assets-gateway")
+
     return Configuration(
         open_api_prefix='',
         http_port=Configuration.local_http_port,
@@ -167,6 +176,7 @@ async def get_full_local_config() -> Configuration:
         storage=storage,
         doc_db_stories=doc_db_stories,
         doc_db_documents=doc_db_documents,
+        assets_gtw_client=assets_gtw_client,
         auth_middleware=AuthLocalMiddleware,
         auth_middleware_args={},
         admin_headers=None
