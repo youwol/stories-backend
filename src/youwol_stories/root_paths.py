@@ -55,6 +55,57 @@ async def get_user_info(
     return User(name=user['preferred_username'], groups=groups)
 
 
+@router.post(
+    "/stories",
+    response_model=StoryResp,
+    summary="publish a story from zip file")
+async def publish_story(
+        request: Request,
+        file: UploadFile = File(...),
+        configuration: Configuration = Depends(get_configuration)
+):
+    headers = generate_headers_downstream(request.headers)
+    owner = Configuration.default_owner
+    doc_db_stories = configuration.doc_db_stories
+    doc_db_docs = configuration.doc_db_documents
+    storage = configuration.storage
+
+    with tempfile.TemporaryDirectory() as tmp_folder:
+        dir_path = Path(tmp_folder)
+        zip_path = (dir_path / file.filename).with_suffix('.zip')
+        extract_zip_file(file.file, zip_path=zip_path, dir_path=dir_path)
+        data = parse_json(dir_path / 'data.json')
+        story = data['story']
+        story_id = story['story_id']
+        documents = data['documents']
+        docs = await doc_db_stories.query(
+            query_body=f"story_id={story_id}#1",
+            owner=Configuration.default_owner,
+            headers=headers
+        )
+        if docs['documents']:
+            await delete_story(request, story_id=story_id, configuration=configuration)
+        await asyncio.gather(
+            doc_db_stories.create_document(doc=story, owner=owner, headers=headers),
+            *[doc_db_docs.create_document(doc=doc, owner=owner, headers=headers)
+              for doc in documents],
+            *[storage.post_json(path=get_document_path(story_id=story_id, document_id=doc['content_id']),
+                                json=parse_json(dir_path / (doc['content_id']+'.json')),
+                                owner=owner, headers=headers)
+              for doc in documents],
+            storage.post_json(path=get_document_path(story_id=story_id, document_id='requirements'),
+                              json=parse_json(dir_path / 'requirements.json'),
+                              owner=owner, headers=headers)
+        )
+        return StoryResp(
+            storyId=story['story_id'],
+            title=next(d for d in documents if d['document_id'] == story['root_document_id'])['title'],
+            authors=story['authors'],
+            rootDocumentId=story['root_document_id'],
+            requirements=Requirements(plugins=[])
+        )
+
+
 @router.put(
     "/stories",
     response_model=StoryResp,
