@@ -1,21 +1,24 @@
 import asyncio
+import io
 import itertools
 import math
 import tempfile
 import uuid
+import zipfile
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi import Query as QueryParam
+from starlette.responses import StreamingResponse
 
 from youwol_utils import (
     User, Request, user_info, get_all_individual_groups, Group, private_group_id, to_group_id,
-    generate_headers_downstream, Query, WhereClause, DocDbClient,
+    generate_headers_downstream, Query, WhereClause, DocDbClient, InvalidInput,
 )
 from youwol_utils.clients.docdb.models import OrderingClause, QueryBody
 from youwol_utils.context import Context
-from youwol_utils.utils_paths import parse_json
+from youwol_utils.utils_paths import parse_json, write_json
 from .all_icons_emojipedia import (
     icons_smileys_people, icons_animals, icons_foods, icons_activities, icons_travel,
     icons_objects, icons_symbols, icons_flags,
@@ -29,6 +32,7 @@ from .models import (
 from .utils import (
     query_document, position_start,
     position_next, position_format, format_document_resp, get_requirements, extract_zip_file, get_document_path,
+    query_story, zip_data_filename, zip_requirements_filename,
 )
 
 router = APIRouter()
@@ -104,6 +108,54 @@ async def publish_story(
             rootDocumentId=story['root_document_id'],
             requirements=Requirements(plugins=[])
         )
+
+
+@router.get(
+    "/stories/{story_id}/download-zip",
+    summary="create a new story")
+async def download_zip(
+        request: Request,
+        story_id: str,
+        configuration: Configuration = Depends(get_configuration)
+):
+    owner = Configuration.default_owner
+    doc_db_stories = configuration.doc_db_stories
+    doc_db_docs = configuration.doc_db_documents
+    storage = configuration.storage
+
+    async with Context.start_ep(
+        action="download zip",
+        request=request
+    ) as ctx:  # type: Context
+
+        story = await query_story(story_id=story_id, doc_db_stories=doc_db_stories, context=ctx)
+        await ctx.info(text="Story found", data=story)
+        documents = await get_children_rec(document_id=story["root_document_id"], start_index=0, chunk_size=10,
+                                           headers=ctx.headers(), doc_db_docs=doc_db_docs)
+        root_doc = await query_document(document_id=story["root_document_id"], configuration=configuration,
+                                        headers=ctx.headers())
+        await ctx.info(text="Children documents retrieved", data={"count": len(documents)})
+        requirements = await get_requirements(story_id=story_id, storage=storage, context=ctx)
+        data = {
+            "story": story,
+            "documents": [root_doc, *documents]
+        }
+        with tempfile.TemporaryDirectory() as tmp_folder:
+            base_path = Path(tmp_folder)
+            write_json(data=data, path=base_path / zip_data_filename)
+            write_json(data=requirements.dict(), path=base_path / zip_requirements_filename)
+            for doc in data['documents']:
+                storage_path = get_document_path(story_id=story_id, document_id=doc["content_id"])
+                content = await storage.get_json(path=storage_path, owner=owner, headers=ctx.headers())
+                write_json(content,  base_path / f"{doc['content_id']}.json")
+
+            zipper = zipfile.ZipFile(base_path / 'story.zip', 'w', zipfile.ZIP_DEFLATED)
+            all_files = ['data.json', 'requirements.json'] + [f"{doc['content_id']}.json" for doc in data['documents']]
+            for filename in all_files:
+                zipper.write(base_path / filename, arcname=filename)
+            zipper.close()
+            content_bytes = (Path(tmp_folder) / "story.zip").read_bytes()
+            return StreamingResponse(io.BytesIO(content_bytes), media_type="application/zip")
 
 
 @router.put(
@@ -560,7 +612,7 @@ async def get_children_rec(
         chunk_size,
         headers,
         doc_db_docs: DocDbClient
-) -> List[str]:
+) -> List[Dict[str, Any]]:
     headers = generate_headers_downstream(headers)
     documents_resp = await doc_db_docs.query(
         query_body=f"parent_document_id={document_id},position>={start_index}#{chunk_size}",
