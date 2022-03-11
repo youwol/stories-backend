@@ -77,8 +77,11 @@ async def publish_story(
     with tempfile.TemporaryDirectory() as tmp_folder:
         dir_path = Path(tmp_folder)
         zip_path = (dir_path / file.filename).with_suffix('.zip')
-        extract_zip_file(file.file, zip_path=zip_path, dir_path=dir_path)
-        data = parse_json(dir_path / 'data.json')
+        try:
+            extract_zip_file(file.file, zip_path=zip_path, dir_path=dir_path)
+        except zipfile.BadZipFile:
+            raise InvalidInput(error="Bad zip file")
+        data = parse_json(dir_path / zip_data_filename)
         story = data['story']
         story_id = story['story_id']
         documents = data['documents']
