@@ -101,7 +101,7 @@ async def publish_story(
                                 owner=owner, headers=headers)
               for doc in documents],
             storage.post_json(path=get_document_path(story_id=story_id, document_id='requirements'),
-                              json=parse_json(dir_path / 'requirements.json'),
+                              json=parse_json(dir_path / zip_requirements_filename),
                               owner=owner, headers=headers)
         )
         return StoryResp(
