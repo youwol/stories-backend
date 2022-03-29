@@ -12,7 +12,7 @@ from youwol_utils.clients.assets_gateway.assets_gateway import AssetsGatewayClie
 from youwol_utils.context import ContextLogger, DeployedContextLogger
 from youwol_utils.middlewares import Middleware
 from youwol_utils.middlewares.authentication_local import AuthLocalMiddleware
-from .models import DOCUMENTS_TABLE, STORIES_TABLE, DOCUMENTS_TABLE_BY_ID
+from youwol_utils.http_clients.stories_backend import DOCUMENTS_TABLE, STORIES_TABLE, DOCUMENTS_TABLE_BY_ID
 
 DocDb = Union[DocDbClient, LocalDocDbClient]
 Storage = Union[StorageClient, LocalStorageClient]
@@ -22,7 +22,7 @@ AuthMiddleware = Union[Type[Middleware], Type[AuthLocalMiddleware]]
 
 @dataclass(frozen=True)
 class Configuration:
-    open_api_prefix: str
+    root_path: str
     http_port: int
     base_path: str
     storage: Storage
@@ -54,6 +54,7 @@ class Configuration:
 
 
 async def get_tricot_config() -> Configuration:
+
     required_env_vars = ["AUTH_HOST", "AUTH_CLIENT_ID", "AUTH_CLIENT_SECRET", "AUTH_CLIENT_SCOPE"]
     not_founds = [v for v in required_env_vars if not os.getenv(v)]
     if not_founds:
@@ -84,7 +85,7 @@ async def get_tricot_config() -> Configuration:
     auth_client = AuthClient(url_base=f"https://{openid_host}/auth")
     cache_client = CacheClient(host="redis-master.infra.svc.cluster.local", prefix=Configuration.cache_prefix)
     return Configuration(
-        open_api_prefix='/api/stories-backend',
+        root_path='/api/stories-backend',
         http_port=8080,
         base_path="",
         storage=storage,
@@ -126,7 +127,7 @@ async def get_remote_clients_config(url_cluster) -> Configuration:
     cache_client = LocalCacheClient(prefix=Configuration.cache_prefix)
 
     return Configuration(
-        open_api_prefix='/api/stories-backend',
+        root_path='/api/stories-backend',
         http_port=Configuration.local_http_port,
         base_path="",
         storage=storage,
@@ -170,7 +171,7 @@ async def get_full_local_config() -> Configuration:
     assets_gtw_client = AssetsGatewayClient(url_base="http://localhost:2000/api/assets-gateway")
 
     return Configuration(
-        open_api_prefix='',
+        root_path='',
         http_port=Configuration.local_http_port,
         base_path="",
         storage=storage,
