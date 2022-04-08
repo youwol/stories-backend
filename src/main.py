@@ -2,11 +2,11 @@ import asyncio
 import sys
 
 from config_common import FullConfiguration
-from youwol_stories_backend import get_router as get_stories_router, init_resources
+from youwol_stories_backend import get_router, init_resources
 from youwol_utils.servers.fast_api import serve, FastApiApp, FastApiRouter
 
 
-async def get_configuration() -> FullConfiguration:
+async def select_configuration() -> FullConfiguration:
 
     if sys.argv[1] == "local":
         from config_local import get_configuration as config
@@ -22,7 +22,7 @@ async def get_configuration() -> FullConfiguration:
 
     raise RuntimeError(f"The configuration {sys.argv[1]} is not known")
 
-selected_config: FullConfiguration = asyncio.get_event_loop().run_until_complete(get_configuration())
+selected_config: FullConfiguration = asyncio.get_event_loop().run_until_complete(select_configuration())
 
 
 async def on_before_startup():
@@ -36,7 +36,7 @@ serve(
         root_path=selected_config.server.root_path,
         base_path=selected_config.server.base_path,
         root_router=FastApiRouter(
-            router=get_stories_router(selected_config.service)
+            router=get_router(selected_config.service)
         ),
         middlewares=selected_config.server.middlewares,
         ctx_logger=selected_config.service.ctx_logger,
