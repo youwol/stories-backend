@@ -1,13 +1,13 @@
-from config_common import ServerOptions, FullConfiguration, get_py_youwol_env
+from config_common import get_py_youwol_env, on_before_startup, cache_prefix
 
 from youwol_stories_backend import Constants, Configuration
-from youwol_utils import StorageClient, DocDbClient, AuthClient, LocalCacheClient, log_info
+from youwol_utils import StorageClient, DocDbClient, AuthClient, LocalCacheClient
 
 from youwol_utils.clients.assets_gateway.assets_gateway import AssetsGatewayClient
 from youwol_utils.context import ConsoleContextLogger
 from youwol_utils.http_clients.stories_backend import STORIES_TABLE, DOCUMENTS_TABLE, DOCUMENTS_TABLE_BY_ID
 from youwol_utils.middlewares import Middleware
-from youwol_utils.servers.fast_api import FastApiMiddleware
+from youwol_utils.servers.fast_api import FastApiMiddleware, ServerOptions, AppConfiguration
 
 
 def get_auth_token(env, url_cluster: str):
@@ -15,8 +15,6 @@ def get_auth_token(env, url_cluster: str):
 
 
 async def get_configuration():
-
-    log_info("Use 'hybrid' configuration")
 
     env = await get_py_youwol_env()
     openid_host = env['k8sInstance']['openIdConnect']['host']
@@ -41,18 +39,20 @@ async def get_configuration():
         replication_factor=2
     )
 
-    assets_gtw_client = AssetsGatewayClient(url_base="http://localhost:2000/api/assets-gateway")
+    assets_gtw_client = AssetsGatewayClient(url_base=f"http://localhost:{env['httpPort']}/api/assets-gateway")
     auth_client = AuthClient(url_base=f"https://{openid_host}/auth")
-    cache_client = LocalCacheClient(prefix="stories-backend_")
+    cache_client = LocalCacheClient(prefix=cache_prefix)
 
     service_config = Configuration(
         storage=storage,
         doc_db_stories=doc_db_stories,
         doc_db_documents=doc_db_documents,
         assets_gtw_client=assets_gtw_client,
-        admin_headers={'authorization': f'Bearer {auth_token}'},
-        ctx_logger=ConsoleContextLogger()
+        admin_headers={'authorization': f'Bearer {auth_token}'}
     )
+
+    async def _on_before_startup():
+        await on_before_startup(service_config)
 
     server_options = ServerOptions(
         root_path="",
@@ -61,9 +61,11 @@ async def get_configuration():
         middlewares=[FastApiMiddleware(Middleware, {
             "auth_client": auth_client,
             "cache_client": cache_client
-        })]
+        })],
+        on_before_startup=_on_before_startup,
+        ctx_logger=ConsoleContextLogger()
     )
-    return FullConfiguration(
+    return AppConfiguration(
         server=server_options,
         service=service_config
     )
