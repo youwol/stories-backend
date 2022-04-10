@@ -17,31 +17,26 @@ async def get_configuration():
     env = await get_py_youwol_env()
     databases_path = Path(env['pathsBook']['databases'])
 
-    storage = LocalStorageClient(
-        root_path=databases_path / 'storage',
-        bucket_name=Constants.namespace
-    )
-    doc_db_stories = LocalDocDbClient(
-        root_path=databases_path / 'docdb',
-        keyspace_name=Constants.namespace,
-        table_body=STORIES_TABLE
-    )
-    doc_db_documents = LocalDocDbClient(
-        root_path=databases_path / 'docdb',
-        keyspace_name=Constants.namespace,
-        table_body=DOCUMENTS_TABLE,
-        secondary_indexes=[DOCUMENTS_TABLE_BY_ID]
-    )
-    assets_gtw_client = AssetsGatewayClient(url_base=f"http://localhost:{env['httpPort']}/api/assets-gateway")
-
     async def _on_before_startup():
         await on_before_startup(service_config)
 
     service_config = Configuration(
-        storage=storage,
-        doc_db_stories=doc_db_stories,
-        doc_db_documents=doc_db_documents,
-        assets_gtw_client=assets_gtw_client
+        storage=LocalStorageClient(
+            root_path=databases_path / 'storage',
+            bucket_name=Constants.namespace
+        ),
+        doc_db_stories=LocalDocDbClient(
+            root_path=databases_path / 'docdb',
+            keyspace_name=Constants.namespace,
+            table_body=STORIES_TABLE
+        ),
+        doc_db_documents=LocalDocDbClient(
+            root_path=databases_path / 'docdb',
+            keyspace_name=Constants.namespace,
+            table_body=DOCUMENTS_TABLE,
+            secondary_indexes=[DOCUMENTS_TABLE_BY_ID]
+        ),
+        assets_gtw_client=AssetsGatewayClient(url_base=f"http://localhost:{env['httpPort']}/api/assets-gateway")
     )
     server_options = ServerOptions(
         root_path="",

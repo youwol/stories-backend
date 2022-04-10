@@ -19,38 +19,30 @@ async def get_configuration():
     if not_founds:
         raise RuntimeError(f"Missing environments variable: {not_founds}")
 
-    storage = StorageClient(
-        url_base="http://storage/api",
-        bucket_name=Constants.namespace
-    )
-    doc_db_stories = DocDbClient(
-        url_base="http://docdb/api",
-        keyspace_name=Constants.namespace,
-        table_body=STORIES_TABLE,
-        replication_factor=2
-    )
-    doc_db_documents = DocDbClient(
-        url_base="http://docdb/api",
-        keyspace_name=Constants.namespace,
-        table_body=DOCUMENTS_TABLE,
-        secondary_indexes=[DOCUMENTS_TABLE_BY_ID],
-        replication_factor=2
-    )
-    assets_gtw_client = AssetsGatewayClient(url_base="http://assets-gateway")
-
     openid_host = os.getenv("AUTH_HOST")
-    auth_client = AuthClient(url_base=f"https://{openid_host}/auth")
-
-    cache_client = CacheClient(host="redis-master.infra.svc.cluster.local", prefix=cache_prefix)
 
     async def _on_before_startup():
         await on_before_startup(service_config)
 
     service_config = Configuration(
-        storage=storage,
-        doc_db_stories=doc_db_stories,
-        doc_db_documents=doc_db_documents,
-        assets_gtw_client=assets_gtw_client,
+        storage=StorageClient(
+            url_base="http://storage/api",
+            bucket_name=Constants.namespace
+        ),
+        doc_db_stories=DocDbClient(
+            url_base="http://docdb/api",
+            keyspace_name=Constants.namespace,
+            table_body=STORIES_TABLE,
+            replication_factor=2
+        ),
+        doc_db_documents=DocDbClient(
+            url_base="http://docdb/api",
+            keyspace_name=Constants.namespace,
+            table_body=DOCUMENTS_TABLE,
+            secondary_indexes=[DOCUMENTS_TABLE_BY_ID],
+            replication_factor=2
+        ),
+        assets_gtw_client=AssetsGatewayClient(url_base="http://assets-gateway"),
         admin_headers=await get_headers_auth_admin_from_env()
     )
     server_options = ServerOptions(
@@ -60,8 +52,8 @@ async def get_configuration():
         middlewares=[
             FastApiMiddleware(
                 Middleware, {
-                    "auth_client": auth_client,
-                    "cache_client": cache_client,
+                    "auth_client": AuthClient(url_base=f"https://{openid_host}/auth"),
+                    "cache_client": CacheClient(host="redis-master.infra.svc.cluster.local", prefix=cache_prefix),
                     # healthz need to not be protected as it is used for liveness prob
                     "unprotected_paths": lambda url: url.path.split("/")[-1] == "healthz"
                 }
