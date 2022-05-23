@@ -6,7 +6,7 @@ from youwol_stories_backend import Configuration, Constants
 
 from youwol_utils import StorageClient, DocDbClient, AuthClient, CacheClient, get_headers_auth_admin_from_env
 from youwol_utils.clients.assets_gateway.assets_gateway import AssetsGatewayClient
-from youwol_utils.context import DeployedContextLogger
+from youwol_utils.context import DeployedContextReporter
 from youwol_utils.http_clients.stories_backend import STORIES_TABLE, DOCUMENTS_TABLE, DOCUMENTS_TABLE_BY_ID
 from youwol_utils.middlewares import Middleware
 from youwol_utils.servers.fast_api import FastApiMiddleware, ServerOptions, AppConfiguration
@@ -60,7 +60,7 @@ async def get_configuration():
             )
         ],
         on_before_startup=_on_before_startup,
-        ctx_logger=DeployedContextLogger()
+        ctx_logger=DeployedContextReporter()
     )
     return AppConfiguration(
         server=server_options,
