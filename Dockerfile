@@ -3,7 +3,7 @@ FROM python:3.9-slim
 
 RUN apt-get update \
     && apt-get install -y \
-        ca-certificates \
+        ca-certificates brotli\
     && apt-get autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -11,9 +11,11 @@ RUN apt-get update \
 EXPOSE 8080
 WORKDIR /root
 
-COPY /requirements.txt /root/
-RUN pip3 install --no-cache-dir --upgrade -r "requirements.txt"
+COPY /py-youwol/docker-requirements.txt /root/
+RUN pip3 install --no-cache-dir --upgrade -r "docker-requirements.txt"
 
+COPY /py-youwol/youwol_utils /root/youwol_utils
+COPY /py-youwol/youwol_stories_backend /root/youwol_stories_backend
 COPY /src /root/
 
 
